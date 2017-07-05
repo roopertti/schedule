@@ -22,6 +22,26 @@ app.get('/', (req, res) => {
 	res.sendFile('index.html');
 });
 
+app.get('/getCalendarItems', (req, res) => {
+	CalendarItem.find({})
+	.then((items) => {
+		if(items.length === 0) {
+			res.send({
+				items: null,
+				message: "No items found."
+			});
+		} else if(items.length >= 1) {
+			res.send({
+				items: items,
+				message: "Items were retrieced succesfully!"
+			});
+		}
+	}, (err) => {
+		console.log('error: ' + err);
+		res.send(err);
+	});
+});
+
 app.post('/addCalendarItem', (req, res) => {
 	const start = req.body.start;
 	const end = req.body.end;
