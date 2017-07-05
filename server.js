@@ -6,6 +6,9 @@ const moment = require('moment');
 
 const port = process.env.PORT || 3000;
 
+mongoose.connect('mongodb://localhost/scheduledb');
+mongoose.Promise = global.Promise;
+
 app.use(express.static(__dirname + '/public'));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
