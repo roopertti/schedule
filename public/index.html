@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="app">
+<head>
+	<meta charset="UTF-8">
+	<title>Scheduling prototype</title>
+	<link rel="stylesheet" href="css/bootstrap.min.css">
+	<link rel="stylesheet" href="css/fullcalendar.min.css">
+	<script src="js/jquery.min.js"></script>
+	<script src="js/angular.min.js"></script>
+	<script src="js/bootstrap.min.js"></script>
+	<script src="js/moment-with-locales.min.js"></script>
+	<script src="js/fullcalendar.min.js"></script>
+	<script src="js/calendar.js"></script>
+	<script src="js/app.js"></script>
+</head>
+<body ng-controller="ctrl">
+	<h1>Scheduling prototype</h1>
+	<div ui-calendar="uiConfig.calendar" ng-model="eventSources"></div>
+</body>
+</html>
