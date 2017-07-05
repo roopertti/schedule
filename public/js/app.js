@@ -1,6 +1,6 @@
 var app = angular.module('app', ['ui.calendar'])
 
-.controller('ctrl', ['$scope', '$http', function($scope, $http) {
+.controller('ctrl', ['$scope', '$http', '$interval', function($scope, $http, $interval) {
 	
 	$scope.freeEvents = [];
 	$scope.reservedEvents = [];

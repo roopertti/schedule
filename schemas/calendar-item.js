@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const Schema = mognoose.Schema;
+const Schema = mongoose.Schema;
 
 const CalendarItemSchema = new Schema({
 	creatorId: String,
@@ -15,3 +15,5 @@ const CalendarItemSchema = new Schema({
 });
 
 var CalendarItem = mongoose.model('CalendarItem', CalendarItemSchema, 'calendar_items');
+
+module.exports = CalendarItem;
