@@ -9,8 +9,15 @@ var app = angular.module('app', ['ui.calendar'])
 		timeOnly: "HH:mm"
 	}
 	
-	this.validateInput = function(str, format) {
-		return moment(str, format, true).isValid();
+	this.validateInput = function(date, start, end) {
+		//return moment(str, format, true).isValid();
+		if(moment(date, self.f.dateOnly, true).isValid() && 
+		  moment(start, self.f.timeOnly, true).isValid() &&
+		  moment(end, self.f.timeOnly, true).isValid()) {
+			return true;
+		} else {
+			return false;
+		}
 	}
 	
 	this.parseFullStrToMoment = function(str) {
@@ -33,37 +40,27 @@ var app = angular.module('app', ['ui.calendar'])
 		var start = $scope.startH + ":" + $scope.startM;
 		var end = $scope.endH + ":" + $scope.endM;
 		
-		if(	
-			dates.validateInput(date, dates.f.dateOnly) &&
-			dates.validateInput(start, dates.f.timeOnly) &&
-			dates.validateInput(end, dates.f.timeOnly)
-		) 
+		if(dates.validateInput(date, start, end)) 
 		{
 			var startStr = date + " " + start + " +0300";
 			var endStr = date + " " + end + " +0300";
 
-			if(	
-				dates.validateInput(startStr, dates.f.full) &&
-				dates.validateInput(endStr, dates.f.full)
-			) 
-			{
-				var start = dates.parseFullStrToMoment(startStr);
-				var end = dates.parseFullStrToMoment(endStr);
-				
-				$http({
-					method: 'POST',
-					url: '/addCalendarItem',
-					data: {
-						start: start,
-						end: end
-					}
-				})
-				.then(function(response) {
-					console.log(response);
-				}, function(err) { 
-					console.log('error: ' + err);
-				});
-			}
+			var start = moment(startStr, dates.f.full);
+			var end = moment(endStr, dates.f.full);
+
+			$http({
+				method: 'POST',
+				url: '/addCalendarItem',
+				data: {
+					start: start,
+					end: end
+				}
+			})
+			.then(function(response) {
+				console.log(response);
+			}, function(err) { 
+				console.log('error: ' + err);
+			});
 		}	
 	}
 	
@@ -85,6 +82,9 @@ var app = angular.module('app', ['ui.calendar'])
 	
 	$scope.freeEvents = [];
 	$scope.reservedEvents = [];
+	$scope.newEvents = [];
+	$scope.idOfCurrentlyDraggedEvent = null;
+	var newEventId = 0;
 	
 	$scope.uiConfig = {
 		calendar: {
@@ -96,6 +96,7 @@ var app = angular.module('app', ['ui.calendar'])
             height: 500,
             allDaySlot: false,
             snapDuration: moment.duration(15, 'minutes'),
+			slotDuration: '00:15:00',
             header:{
                 left: 'month agendaWeek',
                 center: 'title',
@@ -127,14 +128,86 @@ var app = angular.module('app', ['ui.calendar'])
             displayEventTime: true,
             navLinks: true,
             editable: false,
-            eventDrop: function(event) {
-                console.log(event);
-            }
+			selectable: true,
+            eventDragStop: function(event) {
+                var eventId = event.id;
+				for(var i = 0; i < $scope.newEvents.length; i++) {
+					if($scope.newEvents[i].id === eventId) {
+						console.log($scope.newEvents[i]);
+						$scope.newEvents.splice(i, 1);
+					}
+				}
+				$scope.newEvents.push(event);
+            },
+			select: function(start) {
+				var newEvent = {
+					title: "New event",
+					color: "#00cccc",
+					textColor: "white",
+					start: start,
+					end: moment(start).add(30, 'minutes'),
+					startEditable: true,
+					overlap: false,
+					id: newEventId
+				}
+				newEventId++;
+				$scope.newEvents.push(newEvent);
+			}
         }
 	}
 	
+	$scope.clearNewEvents = function() {
+		$scope.newEvents.splice(0, $scope.newEvents.length);
+	}
+	
+	$scope.addEventsFromCalendar = function() {
+		for(var i = 0; i < $scope.newEvents.length; i++) {
+			var start = $scope.newEvents[i].start;
+			var end = $scope.newEvents[i].end;
+
+			$http({
+				method: 'POST',
+				url: '/addCalendarItem',
+				data: {
+					start: start,
+					end: end
+				}
+			})
+			.then(function(response) {
+				
+			}, function(err) { 
+				console.log('error: ' + err);
+			});
+		}
+		$scope.clearNewEvents();
+		$scope.getEvents();
+		
+		
+	}
+	
+	function Event(id, start, end, stick) {
+		this.id = id;
+		this.start = start;
+		this.end = end;
+		this.stick = stick;
+	}
+	
+	Event.prototype.makeFree = function() {
+		this.title = "Not reserved";
+		this.color = "#006600";
+		this.textColor = 'white';
+		this.reserved = false;
+	}
+	
+	Event.prototype.makeReserved = function() {
+		this.title = "Reserved";
+		this.color = "red";
+		this.textColor = 'white';
+		this.reserved = true;
+	}
+	
 	$scope.getEvents = function() {
-		var retrievedItems = null;
+		//var retrievedItems = null;
 		
 		if($scope.freeEvents.length > 0)
 			$scope.freeEvents.splice(0, $scope.freeEvents.length);
@@ -147,34 +220,19 @@ var app = angular.module('app', ['ui.calendar'])
 			url: '/getCalendarItems',
 		})
 		.then(function(response) {
-			console.log(response);
-			
-			response.data.items.forEach(function(item) {
-				var event;
+			if(response.data.items) {
+				for(var i = 0; i < response.data.items.length; i++) {
 				
-				if(item.reservedTo === null) {
-					event = {
-						title: "Free",
-						color: 'green',
-						textColor: 'white',
-						reserved: false
+					var event = new Event(response.data.items[i]._id, moment(response.data.items[i].start), moment(response.data.items[i].end), true);
+
+					if(response.data.items[i].reservedTo === null) {
+						event.makeFree();
+					} else if(typeof response.data.items[i].reservedTo === 'string' && response.data.items[i].length > 0) {
+						event.makeReserved();
 					}
-				} else if(typeof item.reservedTo === 'string' && item.length > 0) {
-					event = {
-						title: "Reserved",
-						color: 'red',
-						textColor: 'white',
-						reserved: true
-					}
+					event.reserved === true ? $scope.reservedEvents.push(event) : $scope.freeEvents.push(event);
 				}
-				event.id = item._id;
-				event.start = moment(item.start);
-				event.end = moment(item.end);
-				event.stick = true;
-				
-				event.reserved === true ? $scope.reservedEvents.push(event) : $scope.freeEvents.push(event);
-			});
-			
+			}
 		}, function(err) {
 			console.log(err);
 		});
@@ -182,8 +240,8 @@ var app = angular.module('app', ['ui.calendar'])
 	
 	$scope.getEvents();
 	
-	$scope.eventSources = [$scope.freeEvents, $scope.reservedEvents];
+	$scope.eventSources = [$scope.freeEvents, $scope.reservedEvents, $scope.newEvents];
 	
 	
 	
-}]);
+}])

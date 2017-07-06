@@ -23,7 +23,10 @@ app.get('/', (req, res) => {
 });
 
 app.get('/getCalendarItems', (req, res) => {
-	CalendarItem.find({})
+	var from = moment();
+	console.log(from);
+	var to = moment(from).add(1, 'months')
+	CalendarItem.find({ start: { $gte: from, $lt: to}})
 	.then((items) => {
 		if(items.length === 0) {
 			res.send({
@@ -33,7 +36,7 @@ app.get('/getCalendarItems', (req, res) => {
 		} else if(items.length >= 1) {
 			res.send({
 				items: items,
-				message: "Items were retrieced succesfully!"
+				message: "Items were retrieved succesfully!"
 			});
 		}
 	}, (err) => {
@@ -60,9 +63,6 @@ app.post('/addCalendarItem', (req, res) => {
 	});
 	
 	item.save()
-	.then((item) => {
-		return CalendarItem.findById(item._id);
-	})
 	.then((item) => {
 		res.send({
 			savedItem: item,

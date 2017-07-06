@@ -93,7 +93,9 @@
 		</div>
 		<div class="row" ng-controller="calendarCtrl">
 			<div ui-calendar="uiConfig.calendar" ng-model="eventSources"></div>
+			<button class="btn btn-success" ng-click="addEventsFromCalendar()">Add new events</button>
 			<button class="btn btn-info" ng-click="getEvents()">Refresh</button>
+			<button class="btn btn-warning" ng-click="clearNewEvents()">Reset</button>
 		</div>
 	</div>
 </body>
